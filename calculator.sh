@@ -1,37 +1,55 @@
 #!/bin/bash
 
-# Controlla se ci sono abbastanza argomenti
-if [ $# -ne 3 ]; then
-    echo "Sono necessari tre argomenti: (num1,num2) operatore"
-    exit 1
-fi
+solve_expression() {
+    local expression=$1
 
-# Estrae i numeri dalle parentesi
-nums=$(echo $1 | tr -d '()' | tr ',' ' ')
+    # se l'espressione è un numero, restituiscila come tale
+    if [[ $expression =~ ^[0-9]+$ ]]; then
+        echo $expression
+    else
+        local operator=${expression:0:1}
+        local operand1=${expression:2}
+        operand1=${operand1%%,*}
+        local operand2=${expression#*,}
+        operand2=${operand2%%)*}
 
-# Ottiene l'operatore
-operator=$2
+        # se gli operandi non sono numeri, risolvi l'espressione annidata
+        if ! [[ $operand1 =~ ^[0-9]+$ ]]; then
+            operand1=$(solve_expression $operand1)
+        fi
+        if ! [[ $operand2 =~ ^[0-9]+$ ]]; then
+            operand2=$(solve_expression $operand2)
+        fi
 
-# Esegue l'operazione corretta
-<<<<<<< HEAD
-if [ "$operator" == "+" ]; then
-    ./add.sh $nums
-elif [ "$operator" == "-" ]; then
-    ./sub.sh $nums
-elif [ "$operator" == "*" ]; then
-    ./mul.sh $nums
-elif [ "$operator" == "/" ]; then
-    ./div.sh $nums
-=======
-if [ "$1" == "+" ]; then
-    ./add.sh $2 $3
-elif [ "$1" == "-" ]; then
-    ./sub.sh $2 $3
-elif [ "$1" == "x" ]; then
-    ./mul.sh $2 $3
-elif [ "$1" == "/" ]; then
-    ./div.sh $2 $3
->>>>>>> 14cb687b009a20c6b1bc03f653d227753fc6981f
-else
-    echo "Operatore non riconosciuto"
-fi
+case $operator in
+    "+")
+        result=$(./add.sh $operand1 $operand2)
+        ;;
+    "-")
+        result=$(./sub.sh $operand1 $operand2)
+        ;;
+    "x")
+        result=$(./mul.sh $operand1 $operand2)
+        ;;
+    "/")
+        if [ $operand2 -eq 0 ]; then
+            echo "Errore: divisione per zero."
+            exit 1
+        else
+            result=$(./div.sh $operand1 $operand2)
+        fi
+        ;;
+    *)
+        echo "Operatore non valido: $operator"
+        exit 1
+esac
+
+        echo $result
+    fi
+}
+
+# rimuovi gli spazi dall'espressione
+expression=$(echo $1 | tr -d ' ')
+result=$(solve_expression $expression)
+
+echo "Risultato: $result"
